@@ -312,8 +312,15 @@ button {
   align-items: center;
 }
 
-.footer-note .pill {
-  cursor: default;
+.repo-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: #eef4ff;
+  color: #284268;
+  text-decoration: none;
+  font-weight: 700;
 }
 
 @media (hover: hover) and (pointer: fine) {

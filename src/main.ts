@@ -730,9 +730,9 @@ function render(): void {
           <p class="notice">${t('keyboard')}</p>
           <p class="notice">${t('privacy')}</p>
           <div class="footer-note">
-            <span class="pill">HTML + TypeScript</span>
-            <span class="pill">localStorage only</span>
-            <span class="pill">Cloudflare Pages ready</span>
+            <a class="repo-link" href="https://github.com/tjm8874/Sudoku" target="_blank" rel="noreferrer">
+              GitHub: tjm8874/Sudoku
+            </a>
           </div>
         </aside>
       </section>
