@@ -27,9 +27,12 @@ const TEXT = {
     noSelection: 'なし',
     instructions: '数字を先に選ぶ／マスを先に選ぶ、どちらでも操作できます。青い数字はもう一度押すと解除できます。',
     resume: '途中状態は自動保存されます。',
-    hintResultWrong: '間違いを赤く、次に進めるマスを黄色で表示しました。',
-    hintResultCell: '次に進めるマスを黄色で表示しました。',
-    hintResultNone: '今すぐ確定できるマスは見つかりませんでした。',
+    hintResultWrong: 'この盤面は矛盾しています。赤いマスを見直してください。',
+    hintResultCell: 'このマスに注目してください。候補が1つだけです。',
+    hintResultNone: '今はメモを見直すと進める可能性があります。',
+    hintFocusRow: 'この行に注目してください。置ける場所が1つだけあります。',
+    hintFocusColumn: 'この列に注目してください。置ける場所が1つだけあります。',
+    hintFocusBox: 'この9マスブロックに注目してください。置ける場所が1つだけあります。',
     privacyTitle: '保存について',
     privacy:
       'このサイトはユーザーのデータをサーバーへ一切保存しません。進捗・設定・クリア数は、このブラウザの localStorage のみに保存されます。',
@@ -61,9 +64,12 @@ const TEXT = {
     noSelection: 'None',
     instructions: 'You can choose a digit first or a cell first. Tap the active blue digit again to deselect it.',
     resume: 'Your in-progress board is auto-saved in this browser.',
-    hintResultWrong: 'Wrong cells are red, and the next logical cell is highlighted in yellow.',
-    hintResultCell: 'The next logical cell is highlighted in yellow.',
-    hintResultNone: 'No immediate logical cell was found right now.',
+    hintResultWrong: 'This board has a contradiction. Please review the red cells.',
+    hintResultCell: 'Focus on this cell. It has only one candidate left.',
+    hintResultNone: 'Review your notes to find the next step.',
+    hintFocusRow: 'Focus on this row. There is only one place left for the digit.',
+    hintFocusColumn: 'Focus on this column. There is only one place left for the digit.',
+    hintFocusBox: 'Focus on this 3×3 box. There is only one place left for the digit.',
     privacyTitle: 'Storage notice',
     privacy:
       'This site does not store your data on any server. Progress, settings, and solve counts stay only in your browser localStorage.',
@@ -91,6 +97,7 @@ interface GameState {
   selectedCell: number | null;
   selectedDigit: number | null;
   hintCell: number | null;
+  hintScope: number[];
   wrongCells: number[];
   elapsedSeconds: number;
   completed: boolean;
@@ -108,6 +115,8 @@ interface Stats {
 interface LogicalMove {
   index: number;
   value: number;
+  reason: 'single' | 'row' | 'column' | 'box';
+  highlightIndices: number[];
 }
 
 interface DifficultyAnalysis {
@@ -179,6 +188,7 @@ function createEmptyState(difficulty: Difficulty): GameState {
     selectedCell: null,
     selectedDigit: null,
     hintCell: null,
+    hintScope: [],
     wrongCells: [],
     elapsedSeconds: 0,
     completed: false,
@@ -254,6 +264,7 @@ function loadSavedGame(): GameState | null {
         ? Number(saved.selectedDigit)
         : null,
       hintCell: null,
+      hintScope: [],
       wrongCells: [],
       elapsedSeconds: Math.max(0, Number(saved.elapsedSeconds ?? 0)),
       completed: Boolean(saved.completed),
@@ -339,6 +350,7 @@ async function startNewGame(difficulty: Difficulty): Promise<void> {
     selectedCell: null,
     selectedDigit: null,
     hintCell: null,
+    hintScope: [],
     wrongCells: [],
     elapsedSeconds: 0,
     completed: false,
@@ -378,6 +390,7 @@ function handleCellClick(index: number): void {
   const cell = state.cells[index];
   state.selectedCell = index;
   state.hintCell = null;
+  state.hintScope = [];
 
   if (!cell.fixed && state.selectedDigit !== null && !state.completed) {
     applyDigitToCell(index, state.selectedDigit);
@@ -438,6 +451,7 @@ function applyDigitToCell(index: number, digit: number): void {
 
   state.selectedCell = index;
   state.hintCell = null;
+  state.hintScope = [];
   state.wrongCells = [];
 
   if (state.noteMode && digit !== 0) {
@@ -480,6 +494,7 @@ function restartPuzzle(): void {
   state.selectedCell = null;
   state.selectedDigit = null;
   state.hintCell = null;
+  state.hintScope = [];
   state.wrongCells = [];
   state.elapsedSeconds = 0;
   state.completed = false;
@@ -494,11 +509,38 @@ function showHint(): void {
   }
 
   state.wrongCells = getWrongCells();
+  if (state.wrongCells.length > 0) {
+    state.hintCell = null;
+    state.hintScope = [];
+    state.messageKey = 'hintResultWrong';
+    render();
+    return;
+  }
+
   const sanitized = sanitizeBoardForHints(getValuesFromCells(state.cells));
   const move = collectLogicalMoves(sanitized)[0] ?? null;
   state.hintCell = move?.index ?? null;
-  state.messageKey = state.wrongCells.length > 0 ? 'hintResultWrong' : state.hintCell !== null ? 'hintResultCell' : 'hintResultNone';
+  state.hintScope = move?.highlightIndices ?? [];
+  state.messageKey = getHintMessageKey(move);
   render();
+}
+
+function getHintMessageKey(move: LogicalMove | null): MessageKey {
+  if (!move) {
+    return 'hintResultNone';
+  }
+
+  switch (move.reason) {
+    case 'row':
+      return 'hintFocusRow';
+    case 'column':
+      return 'hintFocusColumn';
+    case 'box':
+      return 'hintFocusBox';
+    case 'single':
+    default:
+      return 'hintResultCell';
+  }
 }
 
 function getWrongCells(): number[] {
@@ -717,6 +759,7 @@ function renderBoard(): string {
             related ? 'related' : '',
             matching ? 'matching' : '',
             state.selectedCell === index ? 'selected' : '',
+            state.hintScope.includes(index) ? 'hint-scope' : '',
             state.hintCell === index ? 'hint' : '',
             state.wrongCells.includes(index) ? 'wrong' : '',
             col === 2 || col === 5 ? 'box-right' : '',
@@ -1140,7 +1183,7 @@ function analyzePuzzle(puzzle: number[]): DifficultyAnalysis {
 
 function collectLogicalMoves(board: number[]): LogicalMove[] {
   const candidateMap = new Map<number, number[]>();
-  const moveMap = new Map<number, number>();
+  const moveMap = new Map<number, LogicalMove>();
 
   for (let index = 0; index < 81; index += 1) {
     if (board[index] !== 0) {
@@ -1149,20 +1192,40 @@ function collectLogicalMoves(board: number[]): LogicalMove[] {
     const candidates = getCandidates(board, index);
     candidateMap.set(index, candidates);
     if (candidates.length === 1) {
-      moveMap.set(index, candidates[0]);
+      moveMap.set(index, {
+        index,
+        value: candidates[0],
+        reason: 'single',
+        highlightIndices: [index],
+      });
     }
   }
 
-  for (const unit of UNITS) {
+  for (const [unitIndex, unit] of UNITS.entries()) {
     for (const digit of DIGITS) {
       const slots = unit.filter((index) => candidateMap.get(index)?.includes(digit));
       if (slots.length === 1) {
-        moveMap.set(slots[0], digit);
+        moveMap.set(slots[0], {
+          index: slots[0],
+          value: digit,
+          reason: getUnitReason(unitIndex),
+          highlightIndices: [...unit],
+        });
       }
     }
   }
 
-  return [...moveMap.entries()].map(([index, value]) => ({ index, value }));
+  return [...moveMap.values()];
+}
+
+function getUnitReason(unitIndex: number): LogicalMove['reason'] {
+  if (unitIndex < 9) {
+    return 'row';
+  }
+  if (unitIndex < 18) {
+    return 'column';
+  }
+  return 'box';
 }
 
 function matchesDifficulty(difficulty: Difficulty, analysis: DifficultyAnalysis, puzzle: number[]): boolean {
