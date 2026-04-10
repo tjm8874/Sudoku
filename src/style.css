@@ -312,8 +312,10 @@ button {
   cursor: default;
 }
 
-button:hover {
-  transform: translateY(-1px);
+@media (hover: hover) and (pointer: fine) {
+  button:hover {
+    transform: translateY(-1px);
+  }
 }
 
 button:active {

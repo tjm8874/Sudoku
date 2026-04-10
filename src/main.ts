@@ -149,8 +149,10 @@ document.addEventListener('keydown', handleKeydown);
 window.setInterval(() => {
   if (!state.generating && state.puzzle.length > 0 && !state.completed) {
     state.elapsedSeconds += 1;
-    persistGame();
-    render();
+    if (state.elapsedSeconds % 5 === 0) {
+      persistGame();
+    }
+    updateElapsedTimeUI();
   }
 }, 1000);
 
@@ -633,7 +635,7 @@ function render(): void {
             </div>
             <div class="info-card">
               <span>${t('timer')}</span>
-              <strong>${formatTime(state.elapsedSeconds)}</strong>
+              <strong data-role="timer-value">${formatTime(state.elapsedSeconds)}</strong>
             </div>
             <div class="info-card">
               <span>${t('progress')}</span>
@@ -835,6 +837,13 @@ function isRelatedCell(index: number, selected: number): boolean {
   const box = Math.floor(row / 3) * 3 + Math.floor(col / 3);
   const selectedBox = Math.floor(selectedRow / 3) * 3 + Math.floor(selectedCol / 3);
   return row === selectedRow || col === selectedCol || box === selectedBox;
+}
+
+function updateElapsedTimeUI(): void {
+  const timerValue = app.querySelector<HTMLElement>('[data-role="timer-value"]');
+  if (timerValue) {
+    timerValue.textContent = formatTime(state.elapsedSeconds);
+  }
 }
 
 function formatTime(seconds: number): string {
