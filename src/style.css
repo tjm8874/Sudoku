@@ -15,6 +15,7 @@ body {
   margin: 0;
   min-height: 100vh;
   background: linear-gradient(180deg, #fff8fb 0%, #eef6ff 100%);
+  overflow-x: hidden;
 }
 
 button {
@@ -24,7 +25,7 @@ button {
 #app {
   max-width: 1100px;
   margin: 0 auto;
-  padding: 20px;
+  padding: clamp(10px, 2vw, 20px);
 }
 
 .shell {
@@ -150,11 +151,14 @@ button {
 .board-card {
   display: grid;
   gap: 14px;
+  min-width: 0;
 }
 
 .board {
   display: grid;
-  grid-template-columns: repeat(9, 1fr);
+  grid-template-columns: repeat(9, minmax(0, 1fr));
+  width: min(100%, 72svh, 720px);
+  margin-inline: auto;
   border: 3px solid #435f8d;
   border-radius: 18px;
   overflow: hidden;
@@ -163,6 +167,7 @@ button {
 
 .cell {
   aspect-ratio: 1 / 1;
+  min-width: 0;
   border: 1px solid #c9d8f7;
   background: #ffffff;
   color: #24324b;
@@ -299,7 +304,7 @@ button:active {
 
 @media (max-width: 820px) {
   #app {
-    padding: 14px;
+    padding: 10px;
   }
 
   .hero,
@@ -308,8 +313,16 @@ button:active {
     display: grid;
   }
 
+  .panel {
+    padding: 12px;
+  }
+
   .meta-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .board {
+    width: min(100%, 68svh, 680px);
   }
 }
 
