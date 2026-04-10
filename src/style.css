@@ -104,6 +104,10 @@ button {
   gap: 10px;
 }
 
+.controls-top-row > * {
+  flex: 1 1 110px;
+}
+
 .difficulty-btn,
 .action-btn {
   min-height: 44px;
@@ -227,32 +231,46 @@ button {
   height: 100%;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 2px;
-  padding: 4px;
+  gap: 1px;
+  padding: 2px;
   color: #6f7f9f;
-  font-size: clamp(0.65rem, 1.7vw, 0.9rem);
+  font-size: clamp(0.5rem, 1.25vw, 0.74rem);
+  line-height: 1;
 }
 
 .notes span {
   display: flex;
   align-items: center;
   justify-content: center;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .digit-pad {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(9, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.secondary-pad {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 
+.secondary-pad .action-btn {
+  width: 100%;
+}
+
 .digit-btn {
-  min-height: 56px;
+  min-height: 52px;
   border: 0;
   background: #eef4ff;
   color: #294368;
   cursor: pointer;
-  font-size: 1.15rem;
+  font-size: 1.05rem;
   font-weight: 800;
+  padding: 0;
 }
 
 .digit-btn:disabled {
@@ -334,17 +352,34 @@ button:active {
 
   .controls-row,
   .footer-note {
-    flex-direction: column;
     align-items: stretch;
   }
 
+  .controls-top-row > * {
+    flex-basis: calc(33.333% - 8px);
+  }
+
   .meta-grid,
-  .stats-grid,
-  .digit-pad {
+  .stats-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .digit-pad .wide {
-    grid-column: span 2;
+  .digit-pad {
+    grid-template-columns: repeat(9, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .digit-btn {
+    min-height: 44px;
+    font-size: 0.95rem;
+  }
+
+  .secondary-pad {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .notes {
+    padding: 1px;
+    font-size: clamp(0.42rem, 2.2vw, 0.66rem);
   }
 }

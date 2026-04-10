@@ -10,14 +10,16 @@ const TEXT = {
     easy: '初級',
     medium: '中級',
     hard: '上級',
-    expert: '超上級',
+    expert: '最上級',
     newGame: '新しい問題',
-    noteMode: 'メモモード',
+    restart: '最初から',
+    noteMode: 'メモ',
     hint: 'ヒント',
     clear: '消す',
     loading: '問題を生成しています…',
     solved: 'クリア！',
     puzzleComplete: 'クリア数を保存しました。次の問題にも挑戦できます。',
+    restarted: 'この問題を最初からやり直しました。',
     solvedCount: 'クリア数',
     timer: '経過',
     progress: '進捗',
@@ -44,12 +46,14 @@ const TEXT = {
     hard: 'Hard',
     expert: 'Expert+',
     newGame: 'New puzzle',
-    noteMode: 'Notes mode',
+    restart: 'Restart',
+    noteMode: 'Notes',
     hint: 'Hint',
     clear: 'Clear',
     loading: 'Generating a puzzle…',
     solved: 'Solved!',
     puzzleComplete: 'Your clear count has been saved. Ready for the next puzzle.',
+    restarted: 'This puzzle has been reset to the beginning.',
     solvedCount: 'Solved',
     timer: 'Time',
     progress: 'Progress',
@@ -464,6 +468,24 @@ function toggleNoteMode(): void {
   render();
 }
 
+function restartPuzzle(): void {
+  if (state.generating || state.puzzle.length !== 81) {
+    return;
+  }
+
+  state.cells = createCellsFromPuzzle(state.puzzle);
+  state.noteMode = false;
+  state.selectedCell = null;
+  state.selectedDigit = null;
+  state.hintCell = null;
+  state.wrongCells = [];
+  state.elapsedSeconds = 0;
+  state.completed = false;
+  state.messageKey = 'restarted';
+  persistGame();
+  render();
+}
+
 function showHint(): void {
   if (state.generating) {
     return;
@@ -588,7 +610,7 @@ function render(): void {
       </section>
 
       <section class="panel controls-grid">
-        <div class="controls-row">
+        <div class="controls-row controls-top-row">
           ${DIFFICULTIES.map(
             (difficulty) => `
               <button class="difficulty-btn ${state.difficulty === difficulty ? 'active' : ''}" data-difficulty="${difficulty}">
@@ -596,13 +618,9 @@ function render(): void {
               </button>
             `,
           ).join('')}
-        </div>
-        <div class="controls-row">
-          <button class="action-btn" data-action="new">${t('newGame')}</button>
-          <button class="action-btn ${state.noteMode ? 'active' : ''}" data-action="note">
-            ${t('noteMode')}: ${state.noteMode ? t('on') : t('off')}
-          </button>
           <button class="action-btn" data-action="hint">${t('hint')}</button>
+          <button class="action-btn" data-action="restart">${t('restart')}</button>
+          <button class="action-btn" data-action="new">${t('newGame')}</button>
         </div>
       </section>
 
@@ -638,7 +656,13 @@ function render(): void {
                 </button>
               `;
             }).join('')}
-            <button class="digit-btn wide" data-action="clear">${t('clear')}</button>
+          </div>
+
+          <div class="secondary-pad">
+            <button class="action-btn ${state.noteMode ? 'active' : ''}" data-action="note">
+              ${t('noteMode')}: ${state.noteMode ? t('on') : t('off')}
+            </button>
+            <button class="action-btn" data-action="clear">${t('clear')}</button>
           </div>
 
           <p class="message">
@@ -757,6 +781,9 @@ function bindEvents(): void {
       switch (button.dataset.action) {
         case 'new':
           void startNewGame(state.difficulty);
+          break;
+        case 'restart':
+          restartPuzzle();
           break;
         case 'note':
           toggleNoteMode();
