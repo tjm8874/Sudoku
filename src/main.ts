@@ -380,7 +380,7 @@ function handleLanguageSwitch(next: Lang): void {
   render();
 }
 
-function handleCellClick(index: number): void {
+function handleCellClick(index: number, shiftKey: boolean = false): void {
   if (state.generating) {
     return;
   }
@@ -388,10 +388,30 @@ function handleCellClick(index: number): void {
   syncSelectedDigitState();
 
   const cell = state.cells[index];
+  const wasPreviouslySelected = state.selectedCell === index;
   state.selectedCell = index;
   state.hintCell = null;
   state.hintScope = [];
 
+  // Shift+クリック：ノート数字を入力
+  if (shiftKey && !cell.fixed && state.selectedDigit !== null && !state.completed) {
+    applyNoteToCell(index, state.selectedDigit);
+    return;
+  }
+
+  // 値が入力済みで選択されていたセルを再度クリック：ノートを消去
+  if (!cell.fixed && cell.value !== 0 && wasPreviouslySelected && !state.completed) {
+    const hasNotes = cell.notes.length > 0;
+    if (hasNotes) {
+      cell.notes = [];
+      state.messageKey = 'instructions';
+      persistGame();
+      render();
+      return;
+    }
+  }
+
+  // 通常のクリック：数字を入力
   if (!cell.fixed && state.selectedDigit !== null && !state.completed) {
     applyDigitToCell(index, state.selectedDigit);
     return;
@@ -461,13 +481,74 @@ function applyDigitToCell(index: number, digit: number): void {
     cell.notes = cell.notes.includes(digit)
       ? cell.notes.filter((note) => note !== digit)
       : [...cell.notes, digit].sort((a, b) => a - b);
+  } else if (digit !== 0) {
+    // 確定数字入力
+    cell.value = digit;
+    cell.notes = [];
+    
+    // 同じ行・列・ブロック内のノート数字を自動削除
+    removeNotesFromRelatedCells(index, digit);
   } else {
+    // 消去
     cell.value = digit;
     cell.notes = [];
   }
 
   state.messageKey = 'instructions';
   checkCompletion();
+  syncSelectedDigitState();
+  persistGame();
+  render();
+}
+
+function removeNotesFromRelatedCells(index: number, digit: number): void {
+  const row = Math.floor(index / 9);
+  const col = index % 9;
+  const boxRow = Math.floor(row / 3);
+  const boxCol = Math.floor(col / 3);
+
+  for (let i = 0; i < 81; i += 1) {
+    const otherRow = Math.floor(i / 9);
+    const otherCol = i % 9;
+    const otherBoxRow = Math.floor(otherRow / 3);
+    const otherBoxCol = Math.floor(otherCol / 3);
+
+    // 同じ行、同じ列、または同じ 3x3 ブロックか判定
+    const sameRow = row === otherRow;
+    const sameCol = col === otherCol;
+    const sameBox = boxRow === otherBoxRow && boxCol === otherBoxCol;
+
+    if (i !== index && (sameRow || sameCol || sameBox)) {
+      const otherCell = state.cells[i];
+      if (otherCell && !otherCell.fixed && otherCell.notes.includes(digit)) {
+        otherCell.notes = otherCell.notes.filter((note) => note !== digit);
+      }
+    }
+  }
+}
+
+function applyNoteToCell(index: number, digit: number): void {
+  const cell = state.cells[index];
+  if (!cell || cell.fixed || state.completed) {
+    render();
+    return;
+  }
+
+  state.selectedCell = index;
+  state.hintCell = null;
+  state.hintScope = [];
+
+  // セルに値が入っている場合は消去してノートを入力
+  if (cell.value !== 0) {
+    cell.value = 0;
+  }
+
+  // ノートを追加または削除
+  cell.notes = cell.notes.includes(digit)
+    ? cell.notes.filter((note) => note !== digit)
+    : [...cell.notes, digit].sort((a, b) => a - b);
+
+  state.messageKey = 'instructions';
   syncSelectedDigitState();
   persistGame();
   render();
@@ -587,7 +668,15 @@ function handleKeydown(event: KeyboardEvent): void {
 
   if (event.key >= '1' && event.key <= '9') {
     event.preventDefault();
-    handleDigitClick(Number(event.key));
+    const digit = Number(event.key);
+    
+    // Shift+ 数字キー：ノート入力（セルが選択されている場合）
+    if (event.shiftKey && state.selectedCell !== null) {
+      applyNoteToCell(state.selectedCell, digit);
+      return;
+    }
+    
+    handleDigitClick(digit);
     return;
   }
 
@@ -804,10 +893,10 @@ function bindEvents(): void {
   });
 
   app.querySelectorAll<HTMLButtonElement>('[data-cell]').forEach((button) => {
-    button.addEventListener('click', () => {
+    button.addEventListener('click', (event) => {
       const index = Number(button.dataset.cell ?? '-1');
       if (index >= 0) {
-        handleCellClick(index);
+        handleCellClick(index, event.shiftKey);
       }
     });
   });
