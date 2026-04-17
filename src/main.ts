@@ -25,7 +25,7 @@ const TEXT = {
     progress: '進捗',
     selected: '選択中',
     noSelection: 'なし',
-    instructions: '数字を先に選ぶ／マスを先に選ぶ、どちらでも操作できます。青い数字はもう一度押すと解除できます。',
+    instructions: '数字を先に選ぶ／マスを先に選ぶ、どちらでも操作できます。青い数字はもう一度押すかスペースキーで解除できます。',
     resume: '途中状態は自動保存されます。',
     hintResultWrong: 'この盤面は矛盾しています。赤いマスを見直してください。',
     hintResultCell: 'このマスに注目してください。候補が1つだけです。',
@@ -62,7 +62,7 @@ const TEXT = {
     progress: 'Progress',
     selected: 'Selected',
     noSelection: 'None',
-    instructions: 'You can choose a digit first or a cell first. Tap the active blue digit again to deselect it.',
+    instructions: 'You can choose a digit first or a cell first. Tap the active blue digit again or press Space to deselect it.',
     resume: 'Your in-progress board is auto-saved in this browser.',
     hintResultWrong: 'This board has a contradiction. Please review the red cells.',
     hintResultCell: 'Focus on this cell. It has only one candidate left.',
@@ -689,6 +689,17 @@ function handleKeydown(event: KeyboardEvent): void {
   if (event.key.toLowerCase() === 'n') {
     event.preventDefault();
     toggleNoteMode();
+    return;
+  }
+
+  if (event.key === ' ') {
+    event.preventDefault();
+    if (state.selectedDigit !== null) {
+      state.selectedDigit = null;
+      state.messageKey = 'instructions';
+      persistGame();
+      render();
+    }
     return;
   }
 

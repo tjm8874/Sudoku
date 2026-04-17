@@ -248,6 +248,8 @@ button {
   justify-content: center;
   min-width: 0;
   overflow: hidden;
+  color: #e53e3e;
+  font-weight: 700;
 }
 
 .digit-pad {
